@@ -24,15 +24,38 @@
     <main>
         <section class="hero">
             <p class="eyebrow">Your Next Favorite Album</p>
-            <h1>Find Your Music</h1>
+            <h1>Find Music Worth</h1> <span>Remembering</span>
             <p>Explore artists, albums, and tracks from around the world and build your own music collection.</p>
-            <a href="#discover" class="btn">Start Exploring</a>
         </section>
 
-        <section id="discover" class="discover">
+        <section id="discover" class="discover-section">
             <h2>Discover Artists</h2>
-            <div class="artist-list">
+            <p>Search for artists and explore new music.</p>
+
+            <form id="artist-search-form">
+                <label for="artist-search">Search for an artist:</label>
+                <div class="search-container">
+                    <input
+                        type="search"
+                        id="artist-search"
+                        placeholder="Tame Impala or Stray Kids..."
+                        required
+                    >
+                    <button type="submit">Search</button>
+                </div>
+            </form>
+
+            <p id="search-status" role="status" aria-live="polite"></p>
+
+            <div id="artist-list" class="artist-list">
                 <!-- Artist cards will be dynamically inserted here -->
+            </div>
+        </section>
+
+        <section id="album-section" class="album-section" hidden>
+            <h2 id="album-heading">Albums</h2>
+            <div id="album-list" class="album-grid">
+                <!-- Album cards will be dynamically inserted here -->
             </div>
         </section>
 
