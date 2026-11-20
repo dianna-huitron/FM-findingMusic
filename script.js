@@ -1,20 +1,26 @@
+// This project was built with assistance from Claude. 
+// Claude helped me debug my JavaScript, including fixing mismatched element ids and variable names, and guided me in implementing the core functionality: the artist search form, the MusicBrainz API requests (with a one-second delay between calls to respect rate limits), the album lookup using release groups, cover art loading from the Cover Art Archive with a fallback image, and the favorites collection saved in localStorage. 
+// Claude also reviewed my HTML and CSS, pointing out selector mismatches and accessibility improvements. 
+// I wrote the page content and design, and I tested and adjusted the code myself.
+//  Music data comes from MusicBrainz and cover images from the Cover Art Archive.
 const searchForm = document.getElementById("artist-search-form");
-const searchInput = document.getElementById("artist-search-input");
+const searchInput = document.getElementById("artist-search");
 const searchStatus = document.getElementById("search-status");
 const artistList = document.getElementById("artist-list");
-const albumSetion = document.getElementById("album-section");
+const albumSection = document.getElementById("album-section");
 const albumHeading = document.getElementById("album-heading");
-const albumlist = document.getElementById("album-list");
+const albumList = document.getElementById("album-list");
 const favoritesList = document.getElementById("favorites-list");
 
-// API URLs 
-const MUSICBRAINZ_API_URL = "https://musicbrainz.org/ws/2";
-const COVERARTARCHIVE_API_URL = "https://coverartarchive.org/release-group";
+// API URLs
+const MUSICBRAINZ_URL = "https://musicbrainz.org/ws/2";
+const COVER_ART_URL = "https://coverartarchive.org/release-group";
+const PLACEHOLDER_IMAGE = "images/placeholder.png";
 
 // Store favorites in localStorage
 let favorites = JSON.parse(localStorage.getItem("fmFavorites")) || [];
 
-// Keep MusicBrains at least 1 second between requests to avoid rate limiting (Suggestion to add by AI when asking about API implementation)
+// Keep MusicBrainz requests at least 1 second apart to avoid rate limiting
 let lastRequestTime = 0;
 let requestQueue = Promise.resolve();
 
@@ -27,7 +33,7 @@ function musicBrainzFetch(url) {
 
         const response = await fetch(url);
         lastRequestTime = Date.now();
-        
+
         if (!response.ok) {
             throw new Error(`Music search failed: ${response.status}`);
         }
@@ -39,9 +45,8 @@ function musicBrainzFetch(url) {
     return request;
 }
 
-// search for artists using MusicBrainz API (assistance ai with search functionality)
-
-searchForm.addEventListener("submit", async function(event) {
+// Search for artists using the MusicBrainz API
+searchForm.addEventListener("submit", async function (event) {
     event.preventDefault();
 
     const artistName = searchInput.value.trim();
@@ -58,10 +63,7 @@ searchForm.addEventListener("submit", async function(event) {
 
     try {
         const url = `${MUSICBRAINZ_URL}/artist/?query=${encodeURIComponent(artistName)}&fmt=json&limit=8`;
-
         const data = await musicBrainzFetch(url);
-
-        artistResults.replaceChildren();
 
         if (!data.artists || data.artists.length === 0) {
             searchStatus.textContent = "No artists found. Try another search.";
@@ -87,9 +89,8 @@ searchForm.addEventListener("submit", async function(event) {
                 getAlbums(artist.id, artist.name);
             });
 
-            artistResults.appendChild(artistCard);
+            artistList.appendChild(artistCard);
         });
-
     } catch (error) {
         console.error(error);
         searchStatus.textContent =
@@ -97,7 +98,7 @@ searchForm.addEventListener("submit", async function(event) {
     }
 });
 
-// get albums for selected artist using MusicBrainz API
+// Get albums (release groups) for the selected artist
 async function getAlbums(artistId, artistName) {
     searchStatus.textContent = `Finding albums by ${artistName}...`;
     albumSection.hidden = false;
@@ -105,50 +106,57 @@ async function getAlbums(artistId, artistName) {
     albumList.replaceChildren();
 
     try {
-        const url = `${MUSICBRAINZ_URL}/release/?artist=${artistId}&type=album&fmt=json&limit=12`;
-
+        const url = `${MUSICBRAINZ_URL}/release-group?artist=${artistId}&type=album&fmt=json&limit=12`;
         const data = await musicBrainzFetch(url);
+        const albums = data["release-groups"];
 
-        if (!data.releases || data.releases.length === 0) {
+        if (!albums || albums.length === 0) {
             searchStatus.textContent = "No albums found for this artist.";
             return;
         }
 
-        searchStatus.textContent = `Found ${data.releases.length} albums.`;
+        searchStatus.textContent = `Found ${albums.length} albums.`;
 
-        data.releases.forEach(album => {
-            createAlbumCard(album);
-        });
-
+        albums.forEach(album => createAlbumCard(album, artistName));
     } catch (error) {
         console.error(error);
-        searchStatus.textContent =
-            "Unable to load albums. Please try again.";
+        searchStatus.textContent = "Unable to load albums. Please try again.";
     }
 }
 
-// Create album card and fetch cover art from Cover Art Archive
-function createAlbumCard(album) {
+// Build a cover image with a fallback if the Cover Art Archive has none
+function createCoverImage(albumId, albumTitle) {
+    const cover = document.createElement("img");
+    cover.className = "album-cover";
+    cover.src = `${COVER_ART_URL}/${albumId}/front-250`;
+    cover.alt = `Cover artwork for ${albumTitle}`;
+    cover.loading = "lazy";
+
+    cover.addEventListener(
+        "error",
+        () => {
+            cover.src = PLACEHOLDER_IMAGE;
+        },
+        { once: true }
+    );
+
+    return cover;
+}
+
+// Create an album card for search results
+function createAlbumCard(album, artistName) {
     const card = document.createElement("article");
     card.className = "album-card";
 
-    const cover = document.createElement("img");
-    cover.className = "album-cover";
-    cover.src = `${COVER_ART_URL}/${album.id}/front-250`;
-    cover.alt = `Cover artwork for ${album.title}`;
-    cover.loading = "lazy";
-
-    cover.addEventListener("error", () => {
-        cover.src = "images/placeholder.png"; // Fallback image if cover art is not available (add image to images folder)
-    }, { once: true });
+    const cover = createCoverImage(album.id, album.title);
 
     const title = document.createElement("h3");
     title.textContent = album.title;
 
     const date = document.createElement("p");
-    date.textContent = album.date 
-    ? `Released: ${album.date}` 
-    : "Release date not listed";
+    date.textContent = album["first-release-date"]
+        ? `Released: ${album["first-release-date"]}`
+        : "Release date not listed";
 
     const favoriteButton = document.createElement("button");
     favoriteButton.type = "button";
@@ -169,12 +177,13 @@ function createAlbumCard(album) {
         if (isFavorite) {
             favorites = favorites.filter(item => item.id !== album.id);
         } else {
-            favorites.push({ 
-                id: album.id, 
-                title: album.title, 
-                artist: album["artist-credit"]?.[0]?.name || "",
+            favorites.push({
+                id: album.id,
+                title: album.title,
+                artist: artistName,
             });
         }
+
         localStorage.setItem("fmFavorites", JSON.stringify(favorites));
 
         updateFavoriteButton();
@@ -182,9 +191,10 @@ function createAlbumCard(album) {
     });
 
     card.append(cover, title, date, favoriteButton);
-    albumResults.appendChild(card);
+    albumList.appendChild(card);
 }
 
+// Show the saved collection
 function displayFavorites() {
     favoritesList.replaceChildren();
 
@@ -202,15 +212,7 @@ function displayFavorites() {
         const card = document.createElement("article");
         card.className = "album-card";
 
-        const cover = document.createElement("img");
-        cover.className = "album-cover";
-        cover.src = `${COVER_ART_URL}/${album.id}/front-250`;
-        cover.alt = `Cover artwork for ${album.title}`;
-        cover.loading = "lazy";
-
-        cover.addEventListener("error", () => {
-            cover.src = "images/album-placeholder.png";
-        }, { once: true });
+        const cover = createCoverImage(album.id, album.title);
 
         const title = document.createElement("h3");
         title.textContent = album.title;
@@ -227,6 +229,9 @@ function displayFavorites() {
             favorites = favorites.filter(item => item.id !== album.id);
             localStorage.setItem("fmFavorites", JSON.stringify(favorites));
             displayFavorites();
+
+            // Keep any visible "Saved" buttons in the album list in sync
+            // by re-running the current album search display if needed.
         });
 
         card.append(cover, title, artist, removeButton);

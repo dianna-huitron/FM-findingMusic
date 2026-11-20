@@ -226,3 +226,82 @@ footer {
     border-top: 1px solid #344258;
 }
 
+
+/* Artist Relsuts */
+
+.artist-card {
+    padding: 20px;
+    text-align: left;
+    color: var(--text);
+    background-color: var(--surface);
+    border: 1px solid #344258;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.artist-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--acent);
+}
+
+.artist-card h3 {
+    margin: 0 0 5px;
+}
+
+.artist-card p {
+    color: var(--muted);
+    margin: 0;
+}
+
+/* album cards */
+
+.album-card {
+    padding: 16px;
+    background-color: var(--surface);
+    border: 1px solid #344258;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.album-cover {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 8px;
+    background-color: var(--surface-light);
+}
+
+.album-card h3 {
+    margin-bottom: 5px;
+}
+
+.album-card p {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+/* favorite button */
+
+.favorite-button {
+    width: 100%;
+    padding: 10px;
+    color: var(--text);
+    background-color: var(--surface-light);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.favorite-button:hover {
+    background-color: #394968;
+}
+
+/* search status  */
+
+#search-status {
+    color: var(--secondary-accent);
+    margin-top: 20px;
+}
+
