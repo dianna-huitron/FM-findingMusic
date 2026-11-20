@@ -52,9 +52,9 @@ searchForm.addEventListener("submit", async function(event) {
     }
 
     searchStatus.textContent = "Searching for artists...";
-    artistResults.replaceChildren();
-    albumResults.replaceChildren();
-    albumsSection.hidden = true;
+    artistList.replaceChildren();
+    albumList.replaceChildren();
+    albumSection.hidden = true;
 
     try {
         const url = `${MUSICBRAINZ_URL}/artist/?query=${encodeURIComponent(artistName)}&fmt=json&limit=8`;
@@ -96,3 +96,143 @@ searchForm.addEventListener("submit", async function(event) {
             "Something went wrong while searching. Please try again.";
     }
 });
+
+// get albums for selected artist using MusicBrainz API
+async function getAlbums(artistId, artistName) {
+    searchStatus.textContent = `Finding albums by ${artistName}...`;
+    albumSection.hidden = false;
+    albumHeading.textContent = `Albums by ${artistName}`;
+    albumList.replaceChildren();
+
+    try {
+        const url = `${MUSICBRAINZ_URL}/release/?artist=${artistId}&type=album&fmt=json&limit=12`;
+
+        const data = await musicBrainzFetch(url);
+
+        if (!data.releases || data.releases.length === 0) {
+            searchStatus.textContent = "No albums found for this artist.";
+            return;
+        }
+
+        searchStatus.textContent = `Found ${data.releases.length} albums.`;
+
+        data.releases.forEach(album => {
+            createAlbumCard(album);
+        });
+
+    } catch (error) {
+        console.error(error);
+        searchStatus.textContent =
+            "Unable to load albums. Please try again.";
+    }
+}
+
+// Create album card and fetch cover art from Cover Art Archive
+function createAlbumCard(album) {
+    const card = document.createElement("article");
+    card.className = "album-card";
+
+    const cover = document.createElement("img");
+    cover.className = "album-cover";
+    cover.src = `${COVER_ART_URL}/${album.id}/front-250`;
+    cover.alt = `Cover artwork for ${album.title}`;
+    cover.loading = "lazy";
+
+    cover.addEventListener("error", () => {
+        cover.src = "images/placeholder.png"; // Fallback image if cover art is not available (add image to images folder)
+    }, { once: true });
+
+    const title = document.createElement("h3");
+    title.textContent = album.title;
+
+    const date = document.createElement("p");
+    date.textContent = album.date 
+    ? `Released: ${album.date}` 
+    : "Release date not listed";
+
+    const favoriteButton = document.createElement("button");
+    favoriteButton.type = "button";
+    favoriteButton.className = "favorite-button";
+
+    function updateFavoriteButton() {
+        const isFavorite = favorites.some(item => item.id === album.id);
+        favoriteButton.textContent = isFavorite
+            ? "♥ Saved"
+            : "♡ Add to Collection";
+    }
+
+    updateFavoriteButton();
+
+    favoriteButton.addEventListener("click", () => {
+        const isFavorite = favorites.some(item => item.id === album.id);
+
+        if (isFavorite) {
+            favorites = favorites.filter(item => item.id !== album.id);
+        } else {
+            favorites.push({ 
+                id: album.id, 
+                title: album.title, 
+                artist: album["artist-credit"]?.[0]?.name || "",
+            });
+        }
+        localStorage.setItem("fmFavorites", JSON.stringify(favorites));
+
+        updateFavoriteButton();
+        displayFavorites();
+    });
+
+    card.append(cover, title, date, favoriteButton);
+    albumResults.appendChild(card);
+}
+
+function displayFavorites() {
+    favoritesList.replaceChildren();
+
+    if (favorites.length === 0) {
+        const emptyMessage = document.createElement("p");
+        emptyMessage.className = "empty-message";
+        emptyMessage.textContent =
+            "Your collection is empty. Save an album to get started!";
+
+        favoritesList.appendChild(emptyMessage);
+        return;
+    }
+
+    favorites.forEach(album => {
+        const card = document.createElement("article");
+        card.className = "album-card";
+
+        const cover = document.createElement("img");
+        cover.className = "album-cover";
+        cover.src = `${COVER_ART_URL}/${album.id}/front-250`;
+        cover.alt = `Cover artwork for ${album.title}`;
+        cover.loading = "lazy";
+
+        cover.addEventListener("error", () => {
+            cover.src = "images/album-placeholder.png";
+        }, { once: true });
+
+        const title = document.createElement("h3");
+        title.textContent = album.title;
+
+        const artist = document.createElement("p");
+        artist.textContent = album.artist || "Artist unavailable";
+
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "favorite-button";
+        removeButton.textContent = "Remove from Collection";
+
+        removeButton.addEventListener("click", () => {
+            favorites = favorites.filter(item => item.id !== album.id);
+            localStorage.setItem("fmFavorites", JSON.stringify(favorites));
+            displayFavorites();
+        });
+
+        card.append(cover, title, artist, removeButton);
+        favoritesList.appendChild(card);
+    });
+}
+
+// Show saved favorites when the page opens
+displayFavorites();
