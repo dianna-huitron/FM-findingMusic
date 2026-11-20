@@ -37,6 +37,12 @@ button {
     cursor: pointer;
 }
 
+a:focus-visible,
+button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
 [hidden] {
     display: none !important;
 }
@@ -82,7 +88,7 @@ button {
     max-width: 950px;
 }
 
-.eyebrow {
+.hero .eyebrow {
     color: var(--secondary-accent);
     font-size: 0.9rem;
     font-weight: bold;
@@ -142,6 +148,11 @@ button {
     font-weight: bold;
 }
 
+.search-container {
+    display: flex;
+    gap: 10px;
+}
+
 .search-container input {
     flex: 1;
     min-width: 0;
@@ -190,6 +201,7 @@ button {
 }
 
 .empty-message {
+    grid-column: 1 / -1;
     color: var(--muted);
     background-color: var(--surface);
     padding: 25px;
